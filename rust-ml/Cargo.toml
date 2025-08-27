@@ -1,0 +1,28 @@
+[package]
+name = "rust-ml"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cubecl = { version = "*", features = ["cuda", "wgpu"], optional = true }
+burn-tensor = { version = "*", features = [
+    "cubecl-cuda",
+    "cubecl-wgpu",
+], optional = true }
+burn-fusion = { version = "*", optional = true }
+burn-cubecl = { version = "*", optional = true }
+mimalloc = { version = "*" }
+candle-core = { version = "*", features = ["cudnn"], optional = true }
+
+[features]
+default = ["burn"]
+burn = ["dep:cubecl", "dep:burn-tensor", "dep:burn-fusion", "dep:burn-cubecl"]
+candle = ["dep:candle-core"]
+
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = false
+panic = "abort"
