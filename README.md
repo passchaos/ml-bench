@@ -1,7 +1,7 @@
-用于测试不同机器学习实现的性能，尤其是不同语言的，为优Rust的ML生态做参考
+Refernce for Rust ml framework
 
 # 2025-08-28
-## 矩阵乘算法
+## matmul
 |framework|3090|4090d|
 |---|---|---|
 |torch+compile|121ms|43ms|
