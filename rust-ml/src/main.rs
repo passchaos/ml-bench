@@ -52,7 +52,7 @@ fn matmul() {
     #[cfg(feature = "burn")]
     {
         let res = burn::matmul_cuda();
-        // println!("res: {res}");
+        // println!("res: {:?}", res.shape());
     }
 }
 
@@ -60,11 +60,19 @@ fn main() {
     // warmup
     matmul();
 
-    for _ in 1..10 {
+    let count = 10;
+    let mut sum = 0;
+
+    for _ in 0..count {
         let begin = Instant::now();
 
         matmul();
-        let elapsed = begin.elapsed().as_millis();
-        println!("burn elapsed: {elapsed}ms");
+        let elapsed = begin.elapsed().as_micros();
+
+        sum += elapsed;
+        println!("burn elapsed: {elapsed}micros");
     }
+
+    let mean = (sum as f64) / (count as f64);
+    println!("Mean elapsed time: {mean}micros");
 }

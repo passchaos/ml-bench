@@ -2,5 +2,8 @@
 
 # 2025-08-28
 ## 矩阵乘算法
-torch平均耗时为121ms，candle框架为207ms，burn-cubecl为0ms（这个
-比较诡异，需要更细致分析）
+|framework|3090|4090d|
+|---|---|---|
+|torch+compile|121ms|43ms|
+|candle|207ms|127ms|
+|burn-cubecl|0ms|0.118ms|
