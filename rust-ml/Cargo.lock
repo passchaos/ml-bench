@@ -2147,6 +2147,7 @@ dependencies = [
  "burn-tensor",
  "candle-core",
  "cubecl",
+ "half",
  "mimalloc",
 ]
 

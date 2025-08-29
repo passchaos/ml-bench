@@ -9,8 +9,10 @@ mod burn {
     use burn_tensor::{Distribution, Tensor, backend::Backend};
     use cubecl::cuda::CudaRuntime;
     use cubecl::wgpu::WgpuRuntime;
-    type Cuda<F = f32, I = i32> = CubeBackend<CudaRuntime, F, I, u8>;
-    type CudaFusion<F = f32, I = i32> = burn_fusion::Fusion<CubeBackend<CudaRuntime, F, I, u8>>;
+    use half::bf16;
+
+    type Cuda<F = bf16, I = i32> = CubeBackend<CudaRuntime, F, I, u8>;
+    type CudaFusion<F = bf16, I = i32> = burn_fusion::Fusion<CubeBackend<CudaRuntime, F, I, u8>>;
     type Wgpu<F = f32, I = i32> = CubeBackend<WgpuRuntime, F, I, u8>;
 
     type B = CudaFusion;
@@ -34,15 +36,21 @@ mod burn {
 
 #[cfg(feature = "candle")]
 mod candle {
+    use candle_core::FloatDType;
     use candle_core::{Device, Tensor};
+    use half::bf16;
+    // use candle_core::bf16;
 
     pub fn matmul_cuda() -> Tensor {
         let device = Device::new_cuda(0).unwrap();
 
-        let tensor1 = Tensor::rand::<_, f32>(0.0, 1.0, &[60000, 784], &device).unwrap();
-        let tensor2 = Tensor::rand::<_, f32>(0.0, 1.0, &[784, 1000], &device).unwrap();
+        let zero = bf16::ZERO;
+        let one = bf16::ONE;
+
+        let tensor1 = Tensor::rand::<_, bf16>(zero, one, &[60000, 784], &device).unwrap();
+        let tensor2 = Tensor::rand::<_, bf16>(zero, one, &[784, 1000], &device).unwrap();
         // println!("tensor1: {tensor1}");
-        let tensor3 = Tensor::rand::<_, f32>(0.0, 1.0, &[1, 1000], &device).unwrap();
+        let tensor3 = Tensor::rand::<_, bf16>(zero, one, &[1, 1000], &device).unwrap();
 
         device.synchronize().unwrap();
 
