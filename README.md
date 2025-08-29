@@ -5,5 +5,5 @@ Refernce for Rust ml framework
 |framework|3090|4090d|
 |---|---|---|
 |torch+compile|121ms|43ms|
-|candle|207ms|127ms|
-|burn-cubecl|0ms|0.118ms|
+|candle|207ms|123ms|
+|burn-cubecl||2.5ms|
