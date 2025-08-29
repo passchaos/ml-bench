@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-cubecl = { version = "*", features = ["cuda", "wgpu"], optional = true }
+cubecl = { version = "*", features = [
+    "cuda",
+    "wgpu",
+    "compilation-cache",
+], optional = true }
 burn-tensor = { version = "*", features = [
     "cubecl-cuda",
     "cubecl-wgpu",

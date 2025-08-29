@@ -555,6 +555,7 @@ dependencies = [
  "half",
  "log",
  "paste",
+ "serde",
 ]
 
 [[package]]

@@ -5,11 +5,12 @@ device = torch.device("cuda:0")
 
 @torch.no_grad()
 def bench_logic():
-    a = torch.rand(60000, 784).to(device)
-    b = torch.rand(784, 1000).to(device)
-    c = torch.rand(1, 1000).to(device)
+    a = torch.rand(60000, 784, device=device)
+    b = torch.rand(784, 1000,device = device)
+    c = torch.rand(1, 1000, device=device)
 
     torch.cuda.synchronize()
+    # print(f"a: {a.dtype}")
     res = a.matmul(b) + c
     torch.cuda.synchronize()
 
@@ -18,7 +19,7 @@ def bench_logic():
 if __name__ == "__main__":
     print(torch.cuda.is_available())
     print(device)
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision('highest')
     bl = torch.compile(bench_logic, mode='max-autotune')
 
     # warmup
@@ -26,16 +27,17 @@ if __name__ == "__main__":
 
     count = 10
 
-    sum = 0.0
+    costs = []
 
     for _ in range(count):
         begin = time.time()
         res = bl()
         elapsed = (time.time() - begin) * 1000
         print(f"torch elapsed: {elapsed}ms")
-        sum += elapsed
+        costs.append(elapsed)
 
-        torch.cuda.empty_cache()
+    costs.remove(max(costs))
+    costs.remove(min(costs))
 
-    mean = sum / count
+    mean = sum(costs) / len(costs)
     print(f"Mean elapsed time: {mean}ms")
