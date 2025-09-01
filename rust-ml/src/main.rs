@@ -17,6 +17,12 @@ mod burn {
 
     type B = CudaFusion;
 
+    pub fn sync() {
+        let device = Default::default();
+
+        B::sync(&device);
+    }
+
     pub fn matmul_cuda() -> Tensor<B, 2> {
         let device = Default::default();
         let tensor1 = Tensor::<B, 2>::random([60000, 784], Distribution::Default, &device);
@@ -40,6 +46,11 @@ mod candle {
     use candle_core::{Device, Tensor};
     use half::bf16;
     // use candle_core::bf16;
+    pub fn sync() {
+        let device = Device::new_cuda(0).unwrap();
+
+        device.synchronize().unwrap();
+    }
 
     pub fn matmul_cuda() -> Tensor {
         let device = Device::new_cuda(0).unwrap();
@@ -61,6 +72,18 @@ mod candle {
         device.synchronize().unwrap();
 
         res.unwrap()
+    }
+}
+
+fn sync() {
+    #[cfg(feature = "candle")]
+    {
+        candle::sync();
+    }
+
+    #[cfg(feature = "burn")]
+    {
+        burn::sync();
     }
 }
 
@@ -89,6 +112,7 @@ fn main() {
         let begin = Instant::now();
 
         matmul();
+        sync();
         let elapsed = begin.elapsed().as_secs_f32() * 1000.0;
 
         costs.push(elapsed);

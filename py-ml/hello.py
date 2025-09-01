@@ -31,9 +31,17 @@ if __name__ == "__main__":
 
     for _ in range(count):
         begin = time.time()
+
+        # with torch.profiler.profile(
+        #     activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA]
+        # ) as prof:
+        # torch.cuda.synchronize()
         res = bl()
+        torch.cuda.synchronize()
+
         elapsed = (time.time() - begin) * 1000
-        print(f"torch elapsed: {elapsed}ms")
+        print(f"torch elapsed: {elapsed}ms res shape: {res[100][-1]}")
+        # print(prof.key_averages().table(sort_by="self_cpu_time_total"))
         costs.append(elapsed)
 
     costs.remove(max(costs))
