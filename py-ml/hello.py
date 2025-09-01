@@ -2,12 +2,13 @@ import torch
 import time
 
 device = torch.device("cuda:0")
+dtype = torch.bfloat16
 
 @torch.no_grad()
 def bench_logic():
-    a = torch.rand(60000, 784, device=device)
-    b = torch.rand(784, 1000,device = device)
-    c = torch.rand(1, 1000, device=device)
+    a = torch.rand(60000, 784, dtype=dtype, device=device)
+    b = torch.rand(784, 1000, dtype=dtype, device = device)
+    c = torch.rand(1, 1000, dtype=dtype, device=device)
 
     torch.cuda.synchronize()
     # print(f"a: {a.dtype}")
@@ -21,6 +22,7 @@ if __name__ == "__main__":
     print(device)
     torch.set_float32_matmul_precision('highest')
     bl = torch.compile(bench_logic, mode='max-autotune')
+    # bl = bench_logic
 
     # warmup
     res = bl()

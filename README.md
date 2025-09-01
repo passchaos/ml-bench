@@ -7,7 +7,7 @@ between the results before and after is not significant, but the time consumptio
 of PyTorch has suddenly increased to 2.68ms
 |framework|4090d|
 |---|---|
-|torch+compile|2.68ms|
+|torch+compile|0.90ms|
 |candle|16.4ms|
 |burn-cubecl|1.46ms|
 
