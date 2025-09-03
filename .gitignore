@@ -1,2 +1,5 @@
 __pycache__
 rust-ml/target
+*.sqlite
+*.nsys-rep
+*.log

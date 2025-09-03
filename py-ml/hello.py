@@ -37,7 +37,6 @@ if __name__ == "__main__":
         # with torch.profiler.profile(
         #     activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA]
         # ) as prof:
-        # torch.cuda.synchronize()
         res = bl()
         torch.cuda.synchronize()
 

@@ -1,0 +1,9 @@
+[profiling]
+logger = { level = "full", file = "profiling.log", append = true }
+
+[autotune]
+level = "full"
+logger = { level = "full", file = "autotune.log", append = true }
+
+[compilation]
+logger = { level = "full", file = "compile.log", append = true }

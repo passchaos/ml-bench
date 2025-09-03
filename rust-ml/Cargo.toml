@@ -16,13 +16,16 @@ burn-tensor = { version = "*", features = [
 ], optional = true }
 burn-fusion = { version = "*", optional = true }
 burn-cubecl = { version = "*", optional = true }
+burn-tch = { version = "*", optional = true }
 mimalloc = { version = "*" }
 candle-core = { version = "*", features = ["cudnn"], optional = true }
 
 [features]
 default = ["burn"]
-burn = ["dep:cubecl", "dep:burn-tensor", "dep:burn-fusion", "dep:burn-cubecl"]
+burn = ["dep:burn-tensor", "dep:burn-fusion"]
 candle = ["dep:candle-core"]
+burn-cubecl = ["burn", "dep:cubecl", "dep:burn-cubecl"]
+burn-tch = ["burn", "dep:burn-tch"]
 
 
 [profile.release]

@@ -5,26 +5,64 @@ static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[cfg(feature = "burn")]
 mod burn {
-    use burn_cubecl::CubeBackend;
+    use burn_tensor::bf16;
     use burn_tensor::{Distribution, Tensor, backend::Backend};
-    use cubecl::cuda::CudaRuntime;
-    use cubecl::wgpu::WgpuRuntime;
-    use half::bf16;
 
-    type Cuda<F = bf16, I = i32> = CubeBackend<CudaRuntime, F, I, u8>;
-    type CudaFusion<F = bf16, I = i32> = burn_fusion::Fusion<CubeBackend<CudaRuntime, F, I, u8>>;
-    type Wgpu<F = f32, I = i32> = CubeBackend<WgpuRuntime, F, I, u8>;
+    #[cfg(feature = "burn-tch")]
+    mod tch_inner {
+        pub use burn_tch::{LibTorch, LibTorchDevice};
 
-    type B = CudaFusion;
+        pub(super) type Tch<F = f32> = LibTorch<F>;
+
+        pub fn device() -> LibTorchDevice {
+            LibTorchDevice::Cuda(0)
+        }
+    }
+
+    #[cfg(feature = "burn-cubecl")]
+    mod cubecl_inner {
+        use burn_cubecl::CubeBackend;
+        use cubecl::{cuda::CudaRuntime, wgpu::WgpuRuntime};
+
+        pub(super) type Cuda<F = super::bf16, I = i32> = CubeBackend<CudaRuntime, F, I, u8>;
+        pub(super) type Wgpu<F = super::bf16, I = i32> = CubeBackend<WgpuRuntime, F, I, u8>;
+
+        pub fn device() -> cubecl::cuda::CudaDevice {
+            cubecl::cuda::CudaDevice::new(0)
+        }
+    }
+
+    #[cfg(feature = "burn-tch")]
+    type B = burn_fusion::Fusion<tch_inner::Tch>;
+    #[cfg(feature = "burn-cubecl")]
+    type B = burn_fusion::Fusion<cubecl_inner::Cuda>;
+
+    #[cfg(feature = "burn-tch")]
+    type Device = tch_inner::LibTorchDevice;
+
+    #[cfg(feature = "burn-cubecl")]
+    type Device = cubecl::cuda::CudaDevice;
+
+    pub fn device() -> Device {
+        #[cfg(feature = "burn-tch")]
+        {
+            tch_inner::device()
+        }
+
+        #[cfg(feature = "burn-cubecl")]
+        {
+            cubecl_inner::device()
+        }
+    }
 
     pub fn sync() {
-        let device = Default::default();
+        let device = device();
 
         B::sync(&device);
     }
 
     pub fn matmul_cuda() -> Tensor<B, 2> {
-        let device = Default::default();
+        let device = device();
         let tensor1 = Tensor::<B, 2>::random([60000, 784], Distribution::Default, &device);
         let tensor2 = Tensor::<B, 2>::random([784, 1000], Distribution::Default, &device);
 
@@ -96,8 +134,9 @@ fn matmul() {
 
     #[cfg(feature = "burn")]
     {
+        use burn_tensor::s;
         let res = burn::matmul_cuda();
-        // println!("res: {:?}", res.shape());
+        println!("res: {:?}", res.slice(s![100, -1]).into_scalar());
     }
 }
 
@@ -114,6 +153,7 @@ fn main() {
         matmul();
         sync();
         let elapsed = begin.elapsed().as_secs_f32() * 1000.0;
+        println!("elapsed: {elapsed}ms");
 
         costs.push(elapsed);
     }
