@@ -21,7 +21,7 @@ mimalloc = { version = "*" }
 candle-core = { version = "*", features = ["cudnn"], optional = true }
 
 [features]
-default = ["burn"]
+default = ["burn-cubecl"]
 burn = ["dep:burn-tensor", "dep:burn-fusion"]
 candle = ["dep:candle-core"]
 burn-cubecl = ["burn", "dep:cubecl", "dep:burn-cubecl"]
