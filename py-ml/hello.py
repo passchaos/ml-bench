@@ -6,9 +6,9 @@ dtype = torch.bfloat16
 
 @torch.no_grad()
 def bench_logic():
-    a = torch.rand(60000, 784, dtype=dtype, device=device)
-    b = torch.rand(784, 1000, dtype=dtype, device = device)
-    c = torch.rand(1, 1000, dtype=dtype, device=device)
+    a = torch.rand(235 * 256, 4 * 256, dtype=dtype, device=device)
+    b = torch.rand(4 * 256, 5 * 256, dtype=dtype, device = device)
+    c = torch.rand(1, 5 * 256, dtype=dtype, device=device)
 
     torch.cuda.synchronize()
     # print(f"a: {a.dtype}")
@@ -21,13 +21,13 @@ if __name__ == "__main__":
     print(torch.cuda.is_available())
     print(device)
     torch.set_float32_matmul_precision('highest')
-    bl = torch.compile(bench_logic, mode='max-autotune')
-    # bl = bench_logic
+    # bl = torch.compile(bench_logic, mode='max-autotune')
+    bl = bench_logic
 
     # warmup
     res = bl()
 
-    count = 10
+    count = 20
 
     costs = []
 

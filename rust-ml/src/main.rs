@@ -3,16 +3,24 @@ use std::time::Instant;
 #[global_allocator]
 static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+const L_I: usize = 235 * 256;
+const L_O: usize = 4 * 256;
+const R_I: usize = 4 * 256;
+const R_O: usize = 5 * 256;
+const A_O: usize = 5 * 256;
+
 #[cfg(feature = "burn")]
 mod burn {
     use burn_tensor::bf16;
     use burn_tensor::{Distribution, Tensor, backend::Backend};
 
+    use crate::{A_O, L_I, L_O, R_I, R_O};
+
     #[cfg(feature = "burn-tch")]
     mod tch_inner {
         pub use burn_tch::{LibTorch, LibTorchDevice};
 
-        pub(super) type Tch<F = f32> = LibTorch<F>;
+        pub(super) type Tch<F = super::bf16> = LibTorch<F>;
 
         pub fn device() -> LibTorchDevice {
             LibTorchDevice::Cuda(0)
@@ -82,11 +90,11 @@ mod burn {
     }
 
     pub fn matmul_cuda(device: &Device) -> Tensor<B, 2> {
-        let tensor1 = Tensor::<B, 2>::random([60000, 784], Distribution::Default, device);
-        let tensor2 = Tensor::<B, 2>::random([784, 1000], Distribution::Default, device);
+        let tensor1 = Tensor::<B, 2>::random([L_I, L_O], Distribution::Default, device);
+        let tensor2 = Tensor::<B, 2>::random([R_I, R_O], Distribution::Default, device);
 
         // println!("tensor1: {tensor1}");
-        let tensor3 = Tensor::<B, 2>::random([1, 1000], Distribution::Default, device);
+        let tensor3 = Tensor::<B, 2>::random([1, A_O], Distribution::Default, device);
 
         B::sync(device);
 
@@ -103,6 +111,8 @@ mod candle {
     use candle_core::FloatDType;
     use candle_core::Tensor;
     use half::bf16;
+
+    use crate::{A_O, L_I, L_O, R_I, R_O};
     // use candle_core::bf16;
     pub fn sync(device: &Device) {
         device.synchronize().unwrap();
@@ -116,10 +126,10 @@ mod candle {
         let zero = bf16::ZERO;
         let one = bf16::ONE;
 
-        let tensor1 = Tensor::rand::<_, bf16>(zero, one, &[60000, 784], device).unwrap();
-        let tensor2 = Tensor::rand::<_, bf16>(zero, one, &[784, 1000], device).unwrap();
+        let tensor1 = Tensor::rand::<_, bf16>(zero, one, &[L_I, L_O], device).unwrap();
+        let tensor2 = Tensor::rand::<_, bf16>(zero, one, &[R_I, R_O], device).unwrap();
         // println!("tensor1: {tensor1}");
-        let tensor3 = Tensor::rand::<_, bf16>(zero, one, &[1, 1000], device).unwrap();
+        let tensor3 = Tensor::rand::<_, bf16>(zero, one, &[1, A_O], device).unwrap();
 
         device.synchronize().unwrap();
 
@@ -181,7 +191,7 @@ fn main() {
     // warmup
     matmul(&device);
 
-    let count = 10;
+    let count = 20;
     let mut costs = vec![];
 
     for _ in 0..count {
