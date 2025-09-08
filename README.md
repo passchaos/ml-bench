@@ -2,6 +2,25 @@ Refernce for Rust ml framework
 
 # 2025-09-01
 ## matmul
+reuse device for rust ml; use non-compile mode for pytorch
+
+|framework|4090d|
+|---|---|
+|torch|1.22ms|
+|torch+compile|1.01ms|
+|candle|11.9ms|
+|burn-tch|3.52ms|
+|burn-cubecl|1.56ms|
+## cuda trace
+cubecl don't use the new hardware gemm instruction
+### candle
+![](https://raw.githubusercontent.com/passchaos/sundry/main/images/20250908123006523.png)
+### cubecl
+![](https://raw.githubusercontent.com/passchaos/sundry/main/images/20250908123220416.png)
+
+
+# 2025-09-01
+## matmul
 add explicit cuda synchronize in bench loop, candle and burn-cubecl differences
 between the results before and after is not significant, but the time consumption
 of PyTorch has suddenly increased to 2.68ms

@@ -19,29 +19,46 @@ mod burn {
         }
     }
 
+    #[cfg(feature = "burn-candle")]
+    mod candle_inner {
+        pub use burn_candle::{Candle as CandleBackend, CandleDevice};
+
+        pub(super) type Candle<F = super::bf16, I = u32> = CandleBackend<F, I>;
+
+        pub fn device() -> CandleDevice {
+            CandleDevice::cuda(0)
+        }
+    }
+
     #[cfg(feature = "burn-cubecl")]
     mod cubecl_inner {
         use burn_cubecl::CubeBackend;
-        use cubecl::{cuda::CudaRuntime, wgpu::WgpuRuntime};
+        use burn_cubecl::cubecl::{cuda::CudaRuntime, wgpu::WgpuRuntime};
 
         pub(super) type Cuda<F = super::bf16, I = i32> = CubeBackend<CudaRuntime, F, I, u8>;
         pub(super) type Wgpu<F = super::bf16, I = i32> = CubeBackend<WgpuRuntime, F, I, u8>;
 
-        pub fn device() -> cubecl::cuda::CudaDevice {
-            cubecl::cuda::CudaDevice::new(0)
+        pub fn device() -> burn_cubecl::cubecl::cuda::CudaDevice {
+            burn_cubecl::cubecl::cuda::CudaDevice::new(0)
         }
     }
 
     #[cfg(feature = "burn-tch")]
-    type B = burn_fusion::Fusion<tch_inner::Tch>;
+    type B = tch_inner::Tch;
     #[cfg(feature = "burn-cubecl")]
-    type B = burn_fusion::Fusion<cubecl_inner::Cuda>;
+    // type B = burn_fusion::Fusion<cubecl_inner::Cuda>;
+    type B = cubecl_inner::Cuda;
+    #[cfg(feature = "burn-candle")]
+    type B = candle_inner::Candle;
 
     #[cfg(feature = "burn-tch")]
-    type Device = tch_inner::LibTorchDevice;
+    pub type Device = tch_inner::LibTorchDevice;
 
     #[cfg(feature = "burn-cubecl")]
-    type Device = cubecl::cuda::CudaDevice;
+    pub type Device = burn_cubecl::cubecl::cuda::CudaDevice;
+
+    #[cfg(feature = "burn-candle")]
+    pub type Device = candle_inner::CandleDevice;
 
     pub fn device() -> Device {
         #[cfg(feature = "burn-tch")]
@@ -53,53 +70,56 @@ mod burn {
         {
             cubecl_inner::device()
         }
+
+        #[cfg(feature = "burn-candle")]
+        {
+            candle_inner::device()
+        }
     }
 
-    pub fn sync() {
-        let device = device();
-
-        B::sync(&device);
+    pub fn sync(device: &Device) {
+        B::sync(device);
     }
 
-    pub fn matmul_cuda() -> Tensor<B, 2> {
-        let device = device();
-        let tensor1 = Tensor::<B, 2>::random([60000, 784], Distribution::Default, &device);
-        let tensor2 = Tensor::<B, 2>::random([784, 1000], Distribution::Default, &device);
+    pub fn matmul_cuda(device: &Device) -> Tensor<B, 2> {
+        let tensor1 = Tensor::<B, 2>::random([60000, 784], Distribution::Default, device);
+        let tensor2 = Tensor::<B, 2>::random([784, 1000], Distribution::Default, device);
 
         // println!("tensor1: {tensor1}");
-        let tensor3 = Tensor::<B, 2>::random([1, 1000], Distribution::Default, &device);
+        let tensor3 = Tensor::<B, 2>::random([1, 1000], Distribution::Default, device);
 
-        B::sync(&device);
+        B::sync(device);
 
         let res = tensor1.matmul(tensor2) + tensor3;
 
-        B::sync(&device);
+        B::sync(device);
         res
     }
 }
 
 #[cfg(feature = "candle")]
 mod candle {
+    pub use candle_core::Device;
     use candle_core::FloatDType;
-    use candle_core::{Device, Tensor};
+    use candle_core::Tensor;
     use half::bf16;
     // use candle_core::bf16;
-    pub fn sync() {
-        let device = Device::new_cuda(0).unwrap();
-
+    pub fn sync(device: &Device) {
         device.synchronize().unwrap();
     }
 
-    pub fn matmul_cuda() -> Tensor {
-        let device = Device::new_cuda(0).unwrap();
+    pub fn device() -> Device {
+        Device::new_cuda(0).unwrap()
+    }
 
+    pub fn matmul_cuda(device: &Device) -> Tensor {
         let zero = bf16::ZERO;
         let one = bf16::ONE;
 
-        let tensor1 = Tensor::rand::<_, bf16>(zero, one, &[60000, 784], &device).unwrap();
-        let tensor2 = Tensor::rand::<_, bf16>(zero, one, &[784, 1000], &device).unwrap();
+        let tensor1 = Tensor::rand::<_, bf16>(zero, one, &[60000, 784], device).unwrap();
+        let tensor2 = Tensor::rand::<_, bf16>(zero, one, &[784, 1000], device).unwrap();
         // println!("tensor1: {tensor1}");
-        let tensor3 = Tensor::rand::<_, bf16>(zero, one, &[1, 1000], &device).unwrap();
+        let tensor3 = Tensor::rand::<_, bf16>(zero, one, &[1, 1000], device).unwrap();
 
         device.synchronize().unwrap();
 
@@ -113,36 +133,53 @@ mod candle {
     }
 }
 
-fn sync() {
+#[cfg(feature = "burn")]
+type Device = burn::Device;
+
+#[cfg(feature = "candle")]
+type Device = candle::Device;
+
+#[cfg(feature = "burn")]
+fn device() -> Device {
+    burn::device()
+}
+
+#[cfg(feature = "candle")]
+fn device() -> Device {
+    candle::device()
+}
+
+fn sync(device: &Device) {
     #[cfg(feature = "candle")]
     {
-        candle::sync();
+        candle::sync(device);
     }
 
     #[cfg(feature = "burn")]
     {
-        burn::sync();
+        burn::sync(device);
     }
 }
 
-fn matmul() {
+fn matmul(device: &Device) {
     #[cfg(feature = "candle")]
     {
-        let res = candle::matmul_cuda();
+        let res = candle::matmul_cuda(device);
         // println!("res: {res}");
     }
 
     #[cfg(feature = "burn")]
     {
         use burn_tensor::s;
-        let res = burn::matmul_cuda();
+        let res = burn::matmul_cuda(device);
         println!("res: {:?}", res.slice(s![100, -1]).into_scalar());
     }
 }
 
 fn main() {
+    let device = device();
     // warmup
-    matmul();
+    matmul(&device);
 
     let count = 10;
     let mut costs = vec![];
@@ -150,8 +187,8 @@ fn main() {
     for _ in 0..count {
         let begin = Instant::now();
 
-        matmul();
-        sync();
+        matmul(&device);
+        sync(&device);
         let elapsed = begin.elapsed().as_secs_f32() * 1000.0;
         println!("elapsed: {elapsed}ms");
 
