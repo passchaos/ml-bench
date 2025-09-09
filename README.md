@@ -1,5 +1,22 @@
 Refernce for Rust ml framework
 
+# 2025-09-09
+## matmul
+use matrix shape opt for cache line
+
+A*B + C
+A.shape: 235*256 x 4*256
+B.shape: 4*256 x 5*256
+C.shape: 1 x 5 * 256
+
+
+|framework|4090d|
+|---|---|
+|torch|1.78ms|
+|torch+compile|1.37ms|
+|burn-tch|2.10ms|
+|burn-cubecl|2.30ms|
+
 # 2025-09-01
 ## matmul
 reuse device for rust ml; use non-compile mode for pytorch
