@@ -5,9 +5,12 @@ Refernce for Rust ml framework
 use matrix shape opt for cache line
 
 A*B + C
-A.shape: 235*256 x 4*256
-B.shape: 4*256 x 5*256
-C.shape: 1 x 5 * 256
+
+A.shape: 235\*256 x 4\*256
+
+B.shape: 4\*256 x 5\*256
+
+C.shape: 1 x 5 \* 256
 
 
 |framework|4090d|
