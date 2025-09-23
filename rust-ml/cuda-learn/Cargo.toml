@@ -1,0 +1,7 @@
+[package]
+name = "cuda-learn"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cudarc = { version = "*", features = ["cuda-version-from-build-system"] }

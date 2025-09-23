@@ -1,5 +1,5 @@
 __pycache__
-rust-ml/target
+rust-ml/*/target
 *.sqlite
 *.nsys-rep
 *.log
