@@ -12,6 +12,7 @@ burn-tensor = { git = "https://github.com/tracel-ai/burn", features = [
 burn-fusion = { git = "https://github.com/tracel-ai/burn", optional = true }
 burn-cubecl = { git = "https://github.com/tracel-ai/burn", optional = true }
 burn-tch = { git = "https://github.com/tracel-ai/burn", optional = true }
+
 mimalloc = { version = "*" }
 candle-core = { version = "*", features = ["cudnn"], optional = true }
 burn-candle = { git = "https://github.com/tracel-ai/burn", features = [
@@ -25,7 +26,6 @@ candle = ["dep:candle-core"]
 burn-cubecl = ["burn", "dep:burn-cubecl"]
 burn-tch = ["burn", "dep:burn-tch"]
 burn-candle = ["burn", "dep:burn-candle"]
-
 
 [profile.release]
 opt-level = 3

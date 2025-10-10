@@ -41,21 +41,24 @@ mod burn {
     #[cfg(feature = "burn-cubecl")]
     mod cubecl_inner {
         use burn_cubecl::CubeBackend;
-        use burn_cubecl::cubecl::{cuda::CudaRuntime, wgpu::WgpuRuntime};
 
-        pub(super) type Cuda<F = super::bf16, I = i32> = CubeBackend<CudaRuntime, F, I, u8>;
-        pub(super) type Wgpu<F = super::bf16, I = i32> = CubeBackend<WgpuRuntime, F, I, u8>;
+        // pub(super) type Backend<F = super::bf16, I = i32> =
+        // CubeBackend<burn_cubecl::cubecl::cuda::CudaRuntime, F, I, u8>;
+        pub(super) type Backend<F = burn_tensor::f16, I = i32> =
+            CubeBackend<burn_cubecl::cubecl::wgpu::WgpuRuntime, F, I, u8>;
+        pub(super) type Device = burn_cubecl::cubecl::wgpu::WgpuDevice;
+        // pub(super) type Device = burn_cubecl::cubecl::cuda::CudaDevice;
 
-        pub fn device() -> burn_cubecl::cubecl::cuda::CudaDevice {
-            burn_cubecl::cubecl::cuda::CudaDevice::new(0)
+        pub fn device() -> Device {
+            Device::DefaultDevice
+            // burn_cubecl::cubecl::cuda::CudaDevice::new(0)
         }
     }
 
     #[cfg(feature = "burn-tch")]
     type B = tch_inner::Tch;
     #[cfg(feature = "burn-cubecl")]
-    // type B = burn_fusion::Fusion<cubecl_inner::Cuda>;
-    type B = cubecl_inner::Cuda;
+    type B = cubecl_inner::Backend;
     #[cfg(feature = "burn-candle")]
     type B = candle_inner::Candle;
 
@@ -63,7 +66,7 @@ mod burn {
     pub type Device = tch_inner::LibTorchDevice;
 
     #[cfg(feature = "burn-cubecl")]
-    pub type Device = burn_cubecl::cubecl::cuda::CudaDevice;
+    pub type Device = cubecl_inner::Device;
 
     #[cfg(feature = "burn-candle")]
     pub type Device = candle_inner::CandleDevice;
