@@ -157,6 +157,30 @@ __global__ void reduceAtomicShared(const float *__restrict input, int N)
     }
 }
 
+template <unsigned int BLOCK_SIZE>
+__global__ void reduceShared(const float*__restrict input, int N)
+{
+    const int id = threadIdx.x + blockIdx.x * blockDim.x;
+
+    __shared__ float data[BLOCK_SIZE];
+
+    data[threadIdx.x] = (id < N ? input[id] : 0.0);
+
+    for (int s = blockDim.x / 2; s > 0; s /= 2)
+    {
+        __syncthreads();
+        if (threadIdx.x < s)
+        {
+            data[threadIdx.x] += data[threadIdx.x + s];
+        }
+    }
+
+    if (threadIdx.x == 0)
+    {
+        atomicAdd(&dResult, data[0]);
+    }
+}
+
 void ReduceExam() {
     constexpr unsigned int BLOCK_SIZE = 256;
     constexpr unsigned int WARMUP_ITERATIONS = 10;
@@ -182,7 +206,8 @@ void ReduceExam() {
 
     const std::tuple<const char*, void(*)(const float*, int), unsigned int> reductionTqs[] {
         {"Atomic Global", reduceAtomicGlobal, N},
-        {"Atomic Shared", reduceAtomicShared, N}
+        {"Atomic Shared", reduceAtomicShared, N},
+        {"Reduce Shared", reduceShared<BLOCK_SIZE>, N},
     };
 
     for (const auto& [name, func, numThreads] : reductionTqs)
