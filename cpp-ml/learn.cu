@@ -181,6 +181,78 @@ __global__ void reduceShared(const float*__restrict input, int N)
     }
 }
 
+template <unsigned int BLOCK_SIZE>
+__global__ void reduceShuffle(const float*__restrict input, int N)
+{
+    const int id = threadIdx.x + blockIdx.x * blockDim.x;
+
+    __shared__ float data[BLOCK_SIZE];
+
+    data[threadIdx.x] = (id < N ? input[id] : 0.0);
+
+    for (int s = blockDim.x / 2; s > 16; s /= 2)
+    {
+        __syncthreads();
+        if (threadIdx.x < s)
+        {
+            data[threadIdx.x] += data[threadIdx.x + s];
+        }
+    }
+
+    float x = data[threadIdx.x];
+    if (threadIdx.x < 32)
+    {
+        x += __shfl_down_sync(0xffffffff, x, 16);
+        x += __shfl_down_sync(0xffffffff, x, 8);
+        x += __shfl_down_sync(0xffffffff, x, 4);
+        x += __shfl_down_sync(0xffffffff, x, 2);
+        x += __shfl_down_sync(0xffffffff, x, 1);
+    }
+
+
+    if (threadIdx.x == 0)
+    {
+        atomicAdd(&dResult, x);
+    }
+}
+
+
+template <unsigned int BLOCK_SIZE>
+__global__ void reduceFinal(const float*__restrict input, int N)
+{
+    const int id = threadIdx.x + blockIdx.x * blockDim.x;
+
+    __shared__ float data[BLOCK_SIZE];
+
+    data[threadIdx.x] = (id < N ? input[id] : 0.0);
+    data[threadIdx.x] += id + N/2 < N ? input[id + N/2] : 0.0;
+
+    for (int s = blockDim.x / 2; s > 16; s /= 2)
+    {
+        __syncthreads();
+        if (threadIdx.x < s)
+        {
+            data[threadIdx.x] += data[threadIdx.x + s];
+        }
+    }
+
+    float x = data[threadIdx.x];
+    if (threadIdx.x < 32)
+    {
+        x += __shfl_down_sync(0xffffffff, x, 16);
+        x += __shfl_down_sync(0xffffffff, x, 8);
+        x += __shfl_down_sync(0xffffffff, x, 4);
+        x += __shfl_down_sync(0xffffffff, x, 2);
+        x += __shfl_down_sync(0xffffffff, x, 1);
+    }
+
+
+    if (threadIdx.x == 0)
+    {
+        atomicAdd(&dResult, x);
+    }
+}
+
 void ReduceExam() {
     constexpr unsigned int BLOCK_SIZE = 256;
     constexpr unsigned int WARMUP_ITERATIONS = 10;
@@ -208,6 +280,8 @@ void ReduceExam() {
         {"Atomic Global", reduceAtomicGlobal, N},
         {"Atomic Shared", reduceAtomicShared, N},
         {"Reduce Shared", reduceShared<BLOCK_SIZE>, N},
+        {"RecuceShuffle", reduceShuffle<BLOCK_SIZE>, N},
+        {"RecuceFinal", reduceFinal<BLOCK_SIZE>, N / 2 + 1},
     };
 
     for (const auto& [name, func, numThreads] : reductionTqs)
