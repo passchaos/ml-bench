@@ -3,3 +3,4 @@ rust-ml/*/target
 *.sqlite
 *.nsys-rep
 *.log
+cpp-ml/build

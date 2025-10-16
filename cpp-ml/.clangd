@@ -1,0 +1,2 @@
+CompileFlags:
+  Remove: [-arch=native, --options-file, -forward-unknown-to-host-compiler]
