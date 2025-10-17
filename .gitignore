@@ -4,3 +4,5 @@ rust-ml/*/target
 *.nsys-rep
 *.log
 cpp-ml/build
+cpp-ml/.cache
+cpp-ml/report*

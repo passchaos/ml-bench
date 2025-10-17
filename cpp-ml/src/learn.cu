@@ -9,6 +9,8 @@
 #include <tuple>
 #include <vector>
 
+#include "utility.cuh"
+
 void deviceInfo() {
     int numDevices;
     cudaGetDeviceCount(&numDevices);
@@ -24,7 +26,7 @@ void deviceInfo() {
     std::cout << "Device name: " << props.name << std::endl;
     std::cout << "Device compute capability: " << props.major << "." << props.minor << std::endl;
     std::cout << "Device total memory: " << props.totalGlobalMem / float(1<<30) << " GB" << std::endl;
-    std::cout << "Device clock rate: " << props.clockRate / 1000000.0 << " GHz" << std::endl;
+    // std::cout << "Device clock rate: " << props.clockRate / 1000000.0 << " GHz" << std::endl;
     std::cout << "Device multi-processor count: " << props.multiProcessorCount << std::endl;
 
 }
@@ -307,12 +309,48 @@ void ReduceExam() {
     cudaFree(dValsPtr);
 }
 
+__global__ void SlowKernel() {
+    util::WasteTime(1'000'000'000ULL);
+}
+
+void EventExam() {
+    cudaEvent_t start, end;
+
+    cudaEventCreate(&start);
+    cudaEventCreate(&end);
+
+    cudaDeviceSynchronize();
+
+    auto before = std::chrono::system_clock::now();
+    cudaEventRecord(start);
+
+    SlowKernel<<<1, 1>>>();
+
+    cudaEventRecord(end);
+
+    auto afterNoSync = std::chrono::system_clock::now();
+
+    // cudaDeviceSynchronize();
+    cudaEventSynchronize(end);
+
+    auto afterSync = std::chrono::system_clock::now();
+
+    std::cout << "No Sync Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(afterNoSync - before).count() << " ns\n";
+    std::cout << "Sync Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>(afterSync - afterNoSync).count() << " ns\n";
+
+    float msGPU;
+    cudaEventElapsedTime(&msGPU, start, end);
+    std::cout << "Measured time (CUDA events): " << msGPU << " ms\n";
+    // cudaEventElapsedTime_v2(float *ms, cudaEvent_t start, cudaEvent_t end)
+}
+
 
 int main() {
     // GridExam();
     // takeNTurns<<<1, 1>>>("main", 5);
     // testScheduling<<<1, 4>>>(5);
-    ReduceExam();
+    // ReduceExam();
+    EventExam();
 
     auto err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
