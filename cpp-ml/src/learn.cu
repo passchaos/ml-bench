@@ -311,6 +311,19 @@ void ReduceExam() {
 
 __global__ void SlowKernel() {
     util::WasteTime(1'000'000'000ULL);
+    printf("I'm awake!\n");
+}
+
+void NsightExam() {
+    cudaStream_t streams[5];
+    for (int i = 0; i < 5; i++)
+    {
+        cudaStreamCreate(&streams[i]);
+        SlowKernel<<<1, 1, 0, streams[i]>>>();
+
+    }
+
+    cudaDeviceSynchronize();
 }
 
 void EventExam() {
@@ -350,7 +363,8 @@ int main() {
     // takeNTurns<<<1, 1>>>("main", 5);
     // testScheduling<<<1, 4>>>(5);
     // ReduceExam();
-    EventExam();
+    // EventExam();
+    NsightExam();
 
     auto err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
