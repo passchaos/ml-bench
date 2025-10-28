@@ -1,2 +1,7 @@
 CompileFlags:
+  Add:
+    - -x
+    - cu
+    - --cuda-gpu-arch=sm_89
+    - -I/usr/local/cuda/include
   Remove: [-arch=native, --options-file, -forward-unknown-to-host-compiler]
