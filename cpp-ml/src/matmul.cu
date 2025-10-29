@@ -1,4 +1,3 @@
-#include <__clang_cuda_builtin_vars.h>
 #include <cstdio>
 #include <iostream>
 #include <vector>
@@ -11,10 +10,6 @@
 __global__ void sgemm_naive_intuitive(int m, int n, int k, float alpha,
                                       const float *A, const float *B,
                                       float beta, float *C) {
-  // printf("gridDim: x= %d y= %d z= %d blockDim: x= %d y= %d z= %d\n",
-  // gridDim.x, gridDim.y, gridDim.z, blockDim.x, blockDim.y, blockDim.z);
-  // printf("blockIdx: x= %d y= %d z= %d threadIdx: x= %d y= %d z= %d\n",
-  // blockIdx.x, blockIdx.y, blockIdx.z, threadIdx.x, threadIdx.y, threadIdx.z);
   const uint idx =
       blockIdx.z *
           (gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x) +
@@ -23,36 +18,26 @@ __global__ void sgemm_naive_intuitive(int m, int n, int k, float alpha,
       threadIdx.z * (blockDim.y * blockDim.x) + threadIdx.y * blockDim.x +
       threadIdx.x;
 
-  const uint idx = blockIdx.y * (gridDim.x * blockDim.y * blockDim.x) +
-                   blockIdx.x * (blockDim.y * blockDim.x) +
-                   threadIdx.y * blockDim.x + threadIdx.x;
+  if (idx < m * n) {
+    const uint x = idx / n;
+    const uint y = idx % n;
 
-  if (idx >= m * n) {
-    return;
+    float tmp = 0.0;
+
+    for (int i = 0; i < k; ++i) {
+      tmp += A[x * k + i] * B[i * n + y];
+    }
+
+    C[x * n + y] = alpha * tmp + beta * C[x * n + y];
   }
-
-  const uint x = idx / m;
-  const uint y = idx % m;
-
-  // printf("idx= %d x= %d y= %d\n", idx, x, y);
-
-  float tmp = 0.0;
-
-  for (int i = 0; i < k; ++i) {
-    tmp += A[x * k + i] * B[i * n + y];
-  }
-
-  C[x * n + y] = tmp;
-  // C[x * n + y] = alpha * tmp + beta * C[x * n + y];
 }
 
+// kernel cost: 32.7ms
 __global__ void sgemm_naive_transpose(int m, int n, int k, float alpha,
                                       const float *A, const float *B,
                                       float beta, float *C) {
-  const uint y = blockIdx.x * blockDim.x + threadIdx.x;
   const uint x = blockIdx.y * blockDim.y + threadIdx.y;
-
-  // printf("x= %d y= %d\n", x, y);
+  const uint y = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (x < m && y < n) {
     float tmp = 0.0;
@@ -61,21 +46,37 @@ __global__ void sgemm_naive_transpose(int m, int n, int k, float alpha,
       tmp += A[x * k + i] * B[i * n + y];
     }
 
-    C[x * n + y] = tmp;
-    // C[x * n + y] = alpha * tmp + beta * C[x * n + y];
+    C[x * n + y] = alpha * tmp + beta * C[x * n + y];
+  }
+}
+
+// kernel cost: 38.7ms
+template <const uint BLOCKSIZE>
+__global__ void sgemm_global_mem_coalesce(int m, int n, int k, float alpha,
+                                          const float *A, const float *B,
+                                          float beta, float *C) {
+  const uint x = blockIdx.x * BLOCKSIZE + threadIdx.x / BLOCKSIZE;
+  const uint y = blockIdx.y * BLOCKSIZE + threadIdx.x % BLOCKSIZE;
+
+  if (x < m && y < n) {
+    float tmp = 0.0;
+
+    for (int i = 0; i < k; ++i) {
+      tmp += A[x * k + i] * B[i * n + y];
+    }
+
+    C[x * n + y] = alpha * tmp + beta * C[x * n + y];
   }
 }
 
 // m=n=k=4096
-// kernel cost: 249.6ms
+// kernel cost: 249.7ms
 // GFLOPs: 548.8
 __global__ void sgemm_naive(int m, int n, int k, float alpha, const float *A,
                             const float *B, float beta, float *C) {
   const uint x = blockIdx.x * blockDim.x + threadIdx.x;
   const uint y = blockIdx.y * blockDim.y + threadIdx.y;
 
-  // printf("x= %d y= %d\n", x, y);
-
   if (x < m && y < n) {
     float tmp = 0.0;
 
@@ -83,8 +84,7 @@ __global__ void sgemm_naive(int m, int n, int k, float alpha, const float *A,
       tmp += A[x * k + i] * B[i * n + y];
     }
 
-    C[x * n + y] = tmp;
-    // C[x * n + y] = alpha * tmp + beta * C[x * n + y];
+    C[x * n + y] = alpha * tmp + beta * C[x * n + y];
   }
 }
 
@@ -124,15 +124,17 @@ int main() {
   CHECK_CUDA(cudaEventCreate(&copy_end));
 
   cudaEventRecord(start);
-  // sgemm_naive<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c1);
+  sgemm_naive<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c1);
+  sgemm_global_mem_coalesce<32>
+      <<<gridDim, 32 * 32>>>(m, n, k, 2.0, a, b, 0.0, c2);
 
-  sgemm_naive_transpose<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c1);
-  // sgemm_naive_orig<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c2);
+  // sgemm_naive_transpose<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c2);
+  // sgemm_naive_intuitive<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c2);
   cudaEventRecord(compute_end);
 
   cudaMemcpy(v_c1.data(), c1, m * n * sizeof(float), cudaMemcpyDeviceToHost);
 
-  // cudaMemcpy(v_c2.data(), c2, m * n * sizeof(float), cudaMemcpyDeviceToHost);
+  cudaMemcpy(v_c2.data(), c2, m * n * sizeof(float), cudaMemcpyDeviceToHost);
   cudaEventRecord(copy_end);
 
   auto err = cudaDeviceSynchronize();

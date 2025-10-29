@@ -42,16 +42,15 @@ mod burn {
     mod cubecl_inner {
         use burn_cubecl::CubeBackend;
 
-        // pub(super) type Backend<F = super::bf16, I = i32> =
-        // CubeBackend<burn_cubecl::cubecl::cuda::CudaRuntime, F, I, u8>;
-        pub(super) type Backend<F = burn_tensor::f16, I = i32> =
-            CubeBackend<burn_cubecl::cubecl::wgpu::WgpuRuntime, F, I, u8>;
-        pub(super) type Device = burn_cubecl::cubecl::wgpu::WgpuDevice;
-        // pub(super) type Device = burn_cubecl::cubecl::cuda::CudaDevice;
+        pub(super) type Backend<F = super::bf16, I = i32> =
+            CubeBackend<burn_cubecl::cubecl::cuda::CudaRuntime, F, I, u8>;
+        // pub(super) type Backend<F = burn_tensor::f16, I = i32> =
+        //     CubeBackend<burn_cubecl::cubecl::wgpu::WgpuRuntime, F, I, u8>;
+        // pub(super) type Device = burn_cubecl::cubecl::wgpu::WgpuDevice;
+        pub(super) type Device = burn_cubecl::cubecl::cuda::CudaDevice;
 
         pub fn device() -> Device {
-            Device::DefaultDevice
-            // burn_cubecl::cubecl::cuda::CudaDevice::new(0)
+            Device::new(0)
         }
     }
 
