@@ -16,47 +16,47 @@ mod collision;
 
 fn main() {
     App::new()
-        // .insert_resource(DragState::default())
-        // .insert_resource(Camera2dZoomSettings::default())
-        .insert_resource(Score { player: 0, ai: 0 })
+        .insert_resource(DragState::default())
+        .insert_resource(Camera2dZoomSettings::default())
+        // .insert_resource(Score { player: 0, ai: 0 })
         .add_plugins(DefaultPlugins)
-        .add_systems(
-            Startup,
-            (
-                spawn_ball,
-                spawn_paddles,
-                spawn_gutters,
-                spawn_scoreboard,
-                spawn_camera,
-            ),
-        )
-        .add_systems(
-            Update,
-            (write_system, read_system, conflict_system, conflict2_system),
-        )
-        .add_systems(
-            FixedUpdate,
-            (
-                move_ball.before(project_positions),
-                project_positions,
-                handle_collision.after(move_ball),
-                (handle_player_input, move_ai.after(move_ball)).before(constrain_paddle_position),
-                constrain_paddle_position,
-                detect_goal.after(move_ball),
-                update_scoreboard,
-            ),
-        )
-        .add_observer(reset_ball)
-        .add_observer(update_score)
-        // .add_systems(Startup, setup)
         // .add_systems(
-        //     Update,
+        //     Startup,
         //     (
-        //         handle_zoom,
-        //         reset_zoom,
-        //         (handle_mouse_input, drag_camera).chain(),
+        //         spawn_ball,
+        //         spawn_paddles,
+        //         spawn_gutters,
+        //         spawn_scoreboard,
+        //         spawn_camera,
         //     ),
         // )
+        // .add_systems(
+        //     Update,
+        //     (write_system, read_system, conflict_system, conflict2_system),
+        // )
+        // .add_systems(
+        //     FixedUpdate,
+        //     (
+        //         move_ball.before(project_positions),
+        //         project_positions,
+        //         handle_collision.after(move_ball),
+        //         (handle_player_input, move_ai.after(move_ball)).before(constrain_paddle_position),
+        //         constrain_paddle_position,
+        //         detect_goal.after(move_ball),
+        //         update_scoreboard,
+        //     ),
+        // )
+        // .add_observer(reset_ball)
+        // .add_observer(update_score)
+        .add_systems(Startup, setup)
+        .add_systems(
+            Update,
+            (
+                handle_zoom,
+                reset_zoom,
+                (handle_mouse_input, drag_camera).chain(),
+            ),
+        )
         .run();
 }
 
@@ -571,13 +571,13 @@ fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
     zoom_settings: Res<Camera2dZoomSettings>,
 ) {
-    const GRID_DIM_X: usize = 4;
-    const GRID_DIM_Y: usize = 4;
-    const BLOCK_DIM_X: usize = 8;
-    const BLOCK_DIM_Y: usize = 8;
+    const GRID_DIM_X: usize = 128;
+    const GRID_DIM_Y: usize = 128;
+    const BLOCK_DIM_X: usize = 32;
+    const BLOCK_DIM_Y: usize = 32;
 
-    let m = 128;
-    let n = 128;
+    let m = GRID_DIM_X * BLOCK_DIM_X;
+    let n = GRID_DIM_Y * BLOCK_DIM_Y;
 
     const RECT_SIDE_LENGTH: f32 = 25.0;
     const BLOCK_INTERVAL: f32 = 3.0;
@@ -615,7 +615,7 @@ fn setup(
                         - ((block_y * BLOCK_DIM_Y + thread_y) as f32
                             * (THREAD_INTERVAL + RECT_SIDE_LENGTH)
                             + (BLOCK_INTERVAL - THREAD_INTERVAL) * block_y as f32);
-                    info!("center: x= {center_x} y= {center_y}");
+                    // info!("center: x= {center_x} y= {center_y}");
 
                     commands.spawn((
                         Mesh2d(meshes.add(Rectangle::new(RECT_SIDE_LENGTH, RECT_SIDE_LENGTH))),
