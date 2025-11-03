@@ -2,6 +2,8 @@
 #include <iostream>
 #include <vector>
 
+// #include <cuda/std/chrono>
+
 #include "utility.cuh"
 
 // m=n=k=4096
@@ -10,13 +12,10 @@
 __global__ void sgemm_naive_intuitive(int m, int n, int k, float alpha,
                                       const float *A, const float *B,
                                       float beta, float *C) {
-  const uint idx =
-      blockIdx.z *
-          (gridDim.y * gridDim.x * blockDim.z * blockDim.y * blockDim.x) +
-      blockIdx.y * (gridDim.x * blockDim.z * blockDim.y * blockDim.x) +
-      blockIdx.x * (blockDim.z * blockDim.y * blockDim.x) +
-      threadIdx.z * (blockDim.y * blockDim.x) + threadIdx.y * blockDim.x +
-      threadIdx.x;
+
+  const uint idx = blockIdx.y * (gridDim.x * blockDim.y * blockDim.x) +
+                   blockIdx.x * (blockDim.y * blockDim.x) +
+                   threadIdx.y * blockDim.x + threadIdx.x;
 
   if (idx < m * n) {
     const uint x = idx / n;
@@ -124,15 +123,15 @@ int main() {
   CHECK_CUDA(cudaEventCreate(&copy_end));
 
   cudaEventRecord(start);
-  sgemm_naive<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c1);
-  sgemm_global_mem_coalesce<32>
-      <<<gridDim, 32 * 32>>>(m, n, k, 2.0, a, b, 0.0, c2);
+  // sgemm_naive<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c1);
+  // sgemm_global_mem_coalesce<32>
+  //     <<<gridDim, 32 * 32>>>(m, n, k, 2.0, a, b, 0.0, c2);
 
   // sgemm_naive_transpose<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c2);
-  // sgemm_naive_intuitive<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c2);
+  sgemm_naive_intuitive<<<gridDim, blockDim>>>(m, n, k, 2.0, a, b, 0.0, c2);
   cudaEventRecord(compute_end);
 
-  cudaMemcpy(v_c1.data(), c1, m * n * sizeof(float), cudaMemcpyDeviceToHost);
+  // cudaMemcpy(v_c1.data(), c1, m * n * sizeof(float), cudaMemcpyDeviceToHost);
 
   cudaMemcpy(v_c2.data(), c2, m * n * sizeof(float), cudaMemcpyDeviceToHost);
   cudaEventRecord(copy_end);

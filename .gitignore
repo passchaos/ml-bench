@@ -2,6 +2,7 @@ __pycache__
 rust-ml/*/target
 *.sqlite
 *.nsys-rep
+*.ncu-rep
 *.log
 cpp-ml/build
 cpp-ml/.cache

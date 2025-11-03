@@ -10,5 +10,5 @@ set(CMAKE_CUDA_ARCHITECTURES native)
 
 # add_executable(learn src/learn.cu src/utility.cuh)
 add_executable(matmul src/matmul.cu)
-target_compile_options(matmul PRIVATE -Wall -Wextra -O3 -g -march=native)
+target_compile_options(matmul PRIVATE -g -march=native)
 # target_include_directories(learn PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
