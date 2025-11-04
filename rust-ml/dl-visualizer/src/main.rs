@@ -16,6 +16,7 @@ mod collision;
 
 fn main() {
     App::new()
+        // .insert_resource(Time::<Fixed>::from_seconds(1.0))
         .insert_resource(DragState::default())
         .insert_resource(Camera2dZoomSettings::default())
         // .insert_resource(Score { player: 0, ai: 0 })
@@ -50,7 +51,7 @@ fn main() {
         // .add_observer(update_score)
         .add_systems(Startup, setup)
         .add_systems(
-            Update,
+            FixedUpdate,
             (
                 handle_zoom,
                 reset_zoom,
@@ -571,10 +572,10 @@ fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
     zoom_settings: Res<Camera2dZoomSettings>,
 ) {
-    const GRID_DIM_X: usize = 128;
-    const GRID_DIM_Y: usize = 128;
-    const BLOCK_DIM_X: usize = 32;
-    const BLOCK_DIM_Y: usize = 32;
+    const GRID_DIM_X: usize = 16;
+    const GRID_DIM_Y: usize = 16;
+    const BLOCK_DIM_X: usize = 4;
+    const BLOCK_DIM_Y: usize = 4;
 
     let m = GRID_DIM_X * BLOCK_DIM_X;
     let n = GRID_DIM_Y * BLOCK_DIM_Y;

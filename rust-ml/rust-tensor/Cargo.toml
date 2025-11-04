@@ -5,27 +5,14 @@ edition = "2024"
 
 [dependencies]
 half = "*"
-burn-tensor = { version = "0.19.0", features = [
+burn-tensor = { git = "https://github.com/burn-rs/burn", features = [
     "cubecl-cuda",
-    "cubecl-wgpu",
-], optional = true }
-burn-fusion = { version = "0.19.0", optional = true }
-burn-cubecl = { version = "0.19.0", optional = true }
-burn-tch = { version = "0.19.0", optional = true }
-
+] }
+burn-fusion = { git = "https://github.com/burn-rs/burn" }
+burn-cubecl = { git = "https://github.com/burn-rs/burn" }
 mimalloc = { version = "*" }
-candle-core = { version = "*", features = ["cudnn"], optional = true }
-burn-candle = { version = "0.19.0", features = [
-    "cuda",
-], optional = true }
-
-[features]
-default = ["burn-cubecl"]
-burn = ["dep:burn-tensor", "dep:burn-fusion"]
-candle = ["dep:candle-core"]
-burn-cubecl = ["burn", "dep:burn-cubecl"]
-burn-tch = ["burn", "dep:burn-tch"]
-burn-candle = ["burn", "dep:burn-candle"]
+cudarc = { version = "*", features = ["f16", "cublas", "cuda-version-from-build-system"]}
+rand = "*"
 
 [profile.release]
 opt-level = 3

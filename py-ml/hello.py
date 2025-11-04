@@ -1,52 +1,103 @@
+from jinja2.nodes import Tuple
 import torch
 import time
 
 device = torch.device("cuda:0")
-dtype = torch.bfloat16
+dtype = torch.float32
+
+def create_rand_tensors():
+    a = torch.rand(4096, 4096, dtype=dtype, device=device)
+    b = torch.rand(4096, 4096, dtype=dtype, device = device)
+    c = torch.rand(4096, 4096, dtype=dtype, device=device)
+
+    return a, b, c
 
 @torch.no_grad()
 def bench_logic():
-    a = torch.rand(235 * 256, 4 * 256, dtype=dtype, device=device)
-    b = torch.rand(4 * 256, 5 * 256, dtype=dtype, device = device)
-    c = torch.rand(1, 5 * 256, dtype=dtype, device=device)
+    a, b, c = create_rand_tensors()
 
-    torch.cuda.synchronize()
+    # torch.cuda.synchronize()
     # print(f"a: {a.dtype}")
     res = a.matmul(b) + c
     torch.cuda.synchronize()
 
     return res
 
-if __name__ == "__main__":
-    print(torch.cuda.is_available())
-    print(device)
-    torch.set_float32_matmul_precision('highest')
+
+# f32 =============================================
+# no compile:
+# highest: 3.27ms 3.05ms(only compute)
+# high: 2.53ms
+# medium: 2.53ms 2.35ms(only compute)
+#
+# compile:
+# highest: 3.33ms
+# high: 2.10ms
+# medium: 2.10ms
+#
+
+# f16 =============================================
+# no compile:
+# highest: 3.27ms 3.05ms(only compute)
+# high: 2.53ms
+# medium: 2.53ms 2.35ms(only compute)
+#
+# compile:
+# highest: 3.33ms
+# high: 2.10ms
+# medium: 2.10ms
+#
+
+# bfloat16 =============================================
+# no compile: 1.01ms (only compute)
+# compile: 1.08ms (only compute)
+
+def main_logic():
     # bl = torch.compile(bench_logic, mode='max-autotune')
     bl = bench_logic
 
     # warmup
     res = bl()
 
-    count = 20
+    count = 100
 
     costs = []
 
     for _ in range(count):
+        a, b, c = create_rand_tensors()
+        torch.cuda.synchronize()
+
         begin = time.time()
 
         # with torch.profiler.profile(
         #     activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA]
         # ) as prof:
-        res = bl()
+        res = a.matmul(b) + c        # res = bl()
         torch.cuda.synchronize()
 
         elapsed = (time.time() - begin) * 1000
+
+        # if res is None:
+        #     continue
+
         print(f"torch elapsed: {elapsed}ms res shape: {res[100][-1]}")
         # print(prof.key_averages().table(sort_by="self_cpu_time_total"))
         costs.append(elapsed)
 
-    costs.remove(max(costs))
-    costs.remove(min(costs))
+    try:
+        costs.remove(max(costs))
+        costs.remove(min(costs))
 
-    mean = sum(costs) / len(costs)
-    print(f"Mean elapsed time: {mean}ms")
+        mean = sum(costs) / len(costs)
+        print(f"Mean elapsed time: {mean}ms")
+    except ValueError:
+        pass
+
+
+if __name__ == "__main__":
+    print(torch.cuda.is_available())
+    print(device)
+
+    torch.set_float32_matmul_precision('medium')
+    with torch.no_grad():
+        main_logic()

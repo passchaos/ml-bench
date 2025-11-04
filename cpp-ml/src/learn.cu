@@ -252,7 +252,7 @@ void ReduceExam() {
 
     std::vector<float> vals;
     float* dValsPtr;
-    prepareRandomNumbersCpuGpu(N, vals, &dValsPtr);
+    util::prepareRandomNumbersCpuGpu(N, vals, &dValsPtr);
 
     const auto before = std::chrono::system_clock::now();
     // auto before_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(before).time_since_epoch().count();

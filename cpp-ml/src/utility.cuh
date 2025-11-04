@@ -2,43 +2,64 @@
 #define UTIL_H
 
 #include <algorithm>
-#include <vector>
+#include <cublas_v2.h>
 #include <iostream>
 #include <random>
+#include <vector>
 
-#define CHECK_CUDA(err) { \
-    cudaError_t err_ = err; \
-    if (err_ != cudaSuccess) { \
-        fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, cudaGetErrorString(err_)); \
-        exit(EXIT_FAILURE); \
-    } \
-}
+#define CHECK_CUBLAS(status)                                                   \
+  {                                                                            \
+    cublasStatus_t status_ = status;                                           \
+    if (status_ != CUBLAS_STATUS_SUCCESS) {                                    \
+      fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__,                        \
+              cublasGetStatusString(status_));                                 \
+      exit(EXIT_FAILURE);                                                      \
+    }                                                                          \
+  }
+
+#define CHECK_CURAND(status)                                                   \
+  {                                                                            \
+    curandStatus_t status_ = status;                                           \
+    if (status_ != CURAND_STATUS_SUCCESS) {                                    \
+      fprintf(stderr, "%s:%d %d\n", __FILE__, __LINE__, status_);              \
+      exit(EXIT_FAILURE);                                                      \
+    }                                                                          \
+  }
+
+#define CHECK_CUDA(err)                                                        \
+  {                                                                            \
+    cudaError_t err_ = err;                                                    \
+    if (err_ != cudaSuccess) {                                                 \
+      fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__,                        \
+              cudaGetErrorString(err_));                                       \
+      exit(EXIT_FAILURE);                                                      \
+    }                                                                          \
+  }
 
 namespace util {
 
-void prepareRandomNumbersCpuGpu(unsigned int N,
-    std::vector<float>& vals,
-    float** dValsPtr) {
-        constexpr float target = 2.0;
+void prepareRandomNumbersCpuGpu(unsigned int N, std::vector<float> &vals,
+                                float **dValsPtr) {
+  constexpr float target = 2.0;
 
-        std::cout << "Expected value: " << target * N << "\n";
+  std::cout << "Expected value: " << target * N << "\n";
 
-        std::default_random_engine eng(0xcaffe);
-        std::normal_distribution<float> dist(target);
-        vals.resize(N);
-        std::for_each(vals.begin(), vals.end(), [&dist, &eng](float& f) {
-            f = dist(eng);
-        });
+  std::default_random_engine eng(0xcaffe);
+  std::normal_distribution<float> dist(target);
+  vals.resize(N);
+  std::for_each(vals.begin(), vals.end(),
+                [&dist, &eng](float &f) { f = dist(eng); });
 
-        CHECK_CUDA(cudaMalloc((void **)dValsPtr, sizeof(float) * N));
-        CHECK_CUDA(cudaMemcpy(*dValsPtr, vals.data(), sizeof(float) * N, cudaMemcpyHostToDevice));
-    }
-
-    __device__ void WasteTime(unsigned long long duration)
-    {
-        const unsigned long long start = clock64();
-        while ((clock64() - start) < duration);
-    }
+  CHECK_CUDA(cudaMalloc((void **)dValsPtr, sizeof(float) * N));
+  CHECK_CUDA(cudaMemcpy(*dValsPtr, vals.data(), sizeof(float) * N,
+                        cudaMemcpyHostToDevice));
 }
+
+__device__ void WasteTime(unsigned long long duration) {
+  const unsigned long long start = clock64();
+  while ((clock64() - start) < duration)
+    ;
+}
+} // namespace util
 
 #endif
