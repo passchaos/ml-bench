@@ -218,6 +218,8 @@ void cublasDemo() {
 
     generate_cuda_dft_array(m, k, n, generator, &a, &b, &c);
 
+    auto begin = std::chrono::high_resolution_clock::now();
+
     CHECK_CUDA(cudaEventRecord(start));
 
     CHECK_CUBLAS(cublasGemmEx(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, &alpha,
@@ -232,11 +234,15 @@ void cublasDemo() {
 
     CHECK_CUDA(cudaEventRecord(compute_end));
     CHECK_CUDA(cudaDeviceSynchronize());
+    auto end = std::chrono::high_resolution_clock::now();
 
+    auto duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(end - begin)
+            .count();
     float time_compute;
 
     cudaEventElapsedTime(&time_compute, start, compute_end);
-    printf("Time for compute: %fms\n", time_compute);
+    printf("Time for compute: %fms %ldms\n", time_compute, duration);
     costs.push_back(time_compute);
 
     CHECK_CUDA(cudaFree(a));
