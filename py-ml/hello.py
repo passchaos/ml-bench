@@ -3,12 +3,16 @@ import torch
 import time
 
 device = torch.device("cuda:0")
-dtype = torch.float32
+dtype = torch.bfloat16
+
+m = 4096 * 4
+n = 4096
+k = 4096
 
 def create_rand_tensors():
-    a = torch.rand(4096, 4096, dtype=dtype, device=device)
-    b = torch.rand(4096, 4096, dtype=dtype, device = device)
-    c = torch.rand(4096, 4096, dtype=dtype, device=device)
+    a = torch.rand(m, k, dtype=dtype, device=device)
+    b = torch.rand(k, n, dtype=dtype, device= device)
+    c = torch.rand(m, n, dtype=dtype, device=device)
 
     return a, b, c
 
@@ -18,7 +22,7 @@ def bench_logic():
 
     # torch.cuda.synchronize()
     # print(f"a: {a.dtype}")
-    res = a.matmul(b) + c
+    res = a.matmul(b)
     torch.cuda.synchronize()
 
     return res
@@ -53,13 +57,13 @@ def bench_logic():
 # compile: 1.08ms (only compute)
 
 def main_logic():
-    # bl = torch.compile(bench_logic, mode='max-autotune')
-    bl = bench_logic
+    bl = torch.compile(bench_logic, mode='max-autotune')
+    # bl = bench_logic
 
     # warmup
     res = bl()
 
-    count = 100
+    count = 1000
 
     costs = []
 

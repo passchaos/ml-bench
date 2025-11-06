@@ -170,7 +170,7 @@ void generate_cuda_dft_array(int m, int k, int n, curandGenerator_t generator,
 }
 
 void cublasDemo() {
-  int m = 1024 * 4;
+  int m = 1024 * 4 * 4;
   int k = 1024 * 4;
   int n = 1024 * 4;
 
@@ -269,7 +269,7 @@ int main() {
   cublasDemo();
   return 0;
 
-  constexpr int m = 1024 * 4;
+  constexpr int m = 1024 * 4 * 4;
   constexpr int n = 1024 * 4;
   constexpr int k = 1024 * 4;
   std::vector<float> v_a(m * k, 1.0);
