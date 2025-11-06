@@ -3,7 +3,7 @@ use std::{mem::MaybeUninit, sync::Arc, time::Instant};
 #[global_allocator]
 static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-const M: usize = 128 * 32;
+const M: usize = 128 * 16 * 4 * 2;
 const K: usize = 128 * 32;
 const N: usize = 128 * 32;
 
@@ -86,10 +86,10 @@ fn run_safe_cublas(
                 n: n as i32,
                 k: k as i32,
                 alpha: half::bf16::from_f32(1.0),
-                lda: n as i32,
+                lda: m as i32,
                 ldb: k as i32,
                 beta: half::bf16::from_f32(1.0),
-                ldc: n as i32,
+                ldc: m as i32,
             },
             &a_d,
             &b_d,
@@ -170,11 +170,11 @@ fn run_raw_cublas_inner(
             m as i32,
             b as *const _,
             cudarc::cublas::sys::cudaDataType_t::CUDA_R_16BF,
-            n as i32,
+            k as i32,
             &(1.0f32) as *const f32 as *const _,
             c as *mut _,
             cudarc::cublas::sys::cudaDataType_t::CUDA_R_16BF,
-            n as i32,
+            m as i32,
             cudarc::cublas::sys::cublasComputeType_t::CUBLAS_COMPUTE_32F,
             cudarc::cublas::sys::cublasGemmAlgo_t::CUBLAS_GEMM_DEFAULT,
         )
@@ -214,9 +214,9 @@ fn run_raw_cublas_inner(
 fn run_cublas(use_raw: bool) -> Vec<f32> {
     let ctx = CudaContext::new(0).unwrap();
 
-    let m = 1024 * 4;
-    let n = 1024 * 4;
-    let k = 1024 * 4;
+    let m = M;
+    let n = N;
+    let k = K;
 
     let a: Vec<_> = rand::random_iter()
         .take(m * k)
