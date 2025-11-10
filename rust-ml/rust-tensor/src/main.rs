@@ -234,9 +234,10 @@ fn run_candle() -> Vec<f32> {
 
     let mut costs = Vec::new();
     for _ in 0..1000 {
-        let begin = Instant::now();
+        device.synchronize().unwrap();
 
-        let _res = (tensor1.matmul(&tensor2).unwrap() + &tensor3).unwrap();
+        let begin = Instant::now();
+        let b = tensor1.matmul(&tensor2).unwrap() + &tensor3;
 
         device.synchronize().unwrap();
         let elapsed = begin.elapsed().as_secs_f32() * 1000.0;
@@ -299,6 +300,7 @@ fn main() {
         ComputeKind::CublasSafe => run_cublas(true),
         ComputeKind::CublasRaw => run_cublas(false),
         ComputeKind::Candle => run_candle(),
+        // _ => run_candle(),
         ComputeKind::Cubecl => run_cubecl(),
     };
 

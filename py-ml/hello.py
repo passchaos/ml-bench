@@ -57,8 +57,8 @@ def bench_logic():
 # compile: 1.08ms (only compute)
 
 def main_logic():
-    bl = torch.compile(bench_logic, mode='max-autotune')
-    # bl = bench_logic
+    # bl = torch.compile(bench_logic, mode='max-autotune')
+    bl = bench_logic
 
     # warmup
     res = bl()
@@ -67,22 +67,32 @@ def main_logic():
 
     costs = []
 
+    def inner_op(a, b):
+        res = a.matmul(b)
+        return res
+
     for _ in range(count):
         a, b, c = create_rand_tensors()
         torch.cuda.synchronize()
 
-        begin = time.time()
+
 
         # with torch.profiler.profile(
         #     activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA]
         # ) as prof:
-        res = a.matmul(b) + c        # res = bl()
+        res = inner_op(a, b)
+
+        torch.cuda.synchronize()
+
+        begin = time.time()
+        res = res + c        # res = bl()
         torch.cuda.synchronize()
 
         elapsed = (time.time() - begin) * 1000
 
         # if res is None:
         #     continue
+
 
         print(f"torch elapsed: {elapsed}ms res shape: {res[100][-1]}")
         # print(prof.key_averages().table(sort_by="self_cpu_time_total"))
