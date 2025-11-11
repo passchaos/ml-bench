@@ -5,9 +5,9 @@ Refernce for Rust ml framework
 There is a performance improvement of 5% to 10%.
 
 ### A*B
-5.1818~5.9137ms => 4.7552~5.0662ms
+5.1818\~5.9137ms => 4.7552\~5.0662ms
 ### A*B + C
-5.4166~6.1707ms => 5.1834~5.4955ms
+5.4166\~6.1707ms => 5.1834\~5.4955ms
 
 # 2025-11-06
 > m=4096*4 n=4096 k=4096 dtype=bfloat16
