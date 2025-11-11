@@ -5,11 +5,11 @@ edition = "2024"
 
 [dependencies]
 half = "*"
-burn-tensor = { git = "https://github.com/burn-rs/burn", rev = "89de0e13926291028817983d65c242906d3b649b", features = [
+burn-tensor = { git = "https://github.com/burn-rs/burn", features = [
     "cubecl-cuda",
 ] }
-burn-fusion = { git = "https://github.com/burn-rs/burn", rev = "89de0e13926291028817983d65c242906d3b649b" }
-burn-cubecl = { git = "https://github.com/burn-rs/burn", rev = "89de0e13926291028817983d65c242906d3b649b" }
+burn-fusion = { git = "https://github.com/burn-rs/burn" }
+burn-cubecl = { git = "https://github.com/burn-rs/burn" }
 mimalloc = { version = "*" }
 cudarc = { version = "*", features = ["f16", "cublas", "cuda-version-from-build-system"]}
 rand = "*"

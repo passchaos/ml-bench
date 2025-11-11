@@ -269,7 +269,7 @@ fn run_cubecl() -> Vec<f32> {
 
         let begin = Instant::now();
 
-        let res = a.matmul(b) + c;
+        let res = a.matmul(b);
         CudaBackend::sync(&device);
 
         let elapsed = begin.elapsed().as_secs_f32() * 1000.0;
