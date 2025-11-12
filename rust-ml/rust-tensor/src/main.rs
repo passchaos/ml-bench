@@ -12,6 +12,8 @@ const N: usize = 128 * 32;
 use burn_tensor::{Distribution, Tensor, backend::Backend};
 
 use burn_cubecl::CubeBackend;
+
+#[cfg(not(target_os = "macos"))]
 use cudarc::{
     cublas::{
         CudaBlas, Gemm, GemmConfig,
@@ -28,11 +30,27 @@ use cudarc::{
 };
 use half::bf16;
 
-type CudaBackend = CubeBackend<burn_cubecl::cubecl::cuda::CudaRuntime, burn_tensor::bf16, i32, u8>;
+#[cfg(not(target_os = "macos"))]
+type Back = CubeBackend<burn_cubecl::cubecl::cuda::CudaRuntime, burn_tensor::bf16, i32, u8>;
+#[cfg(not(target_os = "macos"))]
 type Device = burn_cubecl::cubecl::cuda::CudaDevice;
 
+#[cfg(target_os = "macos")]
+type Back = CubeBackend<burn_cubecl::cubecl::wgpu::WgpuRuntime, f32, i32, u8>;
+
+#[cfg(target_os = "macos")]
+type Device = burn_cubecl::cubecl::wgpu::WgpuDevice;
+
 pub fn device() -> Device {
-    Device::new(0)
+    #[cfg(target_os = "macos")]
+    {
+        Device::default()
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Device::new(0)
+    }
 }
 
 pub fn matmul_cuda<B: Backend>(a: Tensor<B, 2>, b: Tensor<B, 2>, c: Tensor<B, 2>) -> Tensor<B, 2> {
@@ -55,36 +73,12 @@ pub fn matmul_cuda_with_init<B: Backend>(device: &B::Device) -> Tensor<B, 2> {
     res
 }
 
-fn run_safe_cublas(
-    ctx: &Arc<CudaContext>,
-    blas_handle: &CudaBlas,
-    m: usize,
-    n: usize,
-    k: usize,
-    a_d: CudaSlice<bf16>,
-    b_d: CudaSlice<bf16>,
-    mut c_d: CudaSlice<bf16>,
-) {
-}
-
-fn run_raw_cublas_inner(
-    ctx: &Arc<CudaContext>,
-    blas_handle: cublasHandle_t,
-    m: usize,
-    n: usize,
-    k: usize,
-    a_d: CudaSlice<bf16>,
-    b_d: CudaSlice<bf16>,
-    mut c_d: CudaSlice<bf16>,
-) {
-    let stream = ctx.default_stream();
-}
-
 // cubecl==========================================
 // f32: 3.19ms (only compute)
 // bf16: 1.57ms (only compute)
 // cublas==========================================
 // bf16: 1.08ms
+#[cfg(not(target_os = "macos"))]
 fn run_cublas(use_raw: bool) -> Vec<f32> {
     let ctx = CudaContext::new(0).unwrap();
 
@@ -217,18 +211,26 @@ fn run_cublas(use_raw: bool) -> Vec<f32> {
 }
 
 fn run_candle() -> Vec<f32> {
-    use candle_core::DType;
     use candle_core::Tensor;
 
-    let zero = bf16::ZERO;
-    let one = bf16::ONE;
+    #[cfg(not(target_os = "macos"))]
+    type Dtype = bf16;
+    #[cfg(target_os = "macos")]
+    type Dtype = f32;
 
+    let zero = 0.0;
+    let one = 1.0;
+
+    #[cfg(not(target_os = "macos"))]
     let device = candle_core::Device::new_cuda(0).unwrap();
 
-    let tensor1 = Tensor::rand::<_, bf16>(zero, one, &[M, K], &device).unwrap();
-    let tensor2 = Tensor::rand::<_, bf16>(zero, one, &[K, N], &device).unwrap();
+    #[cfg(target_os = "macos")]
+    let device = candle_core::Device::new_metal(0).unwrap();
 
-    let tensor3 = Tensor::rand::<_, bf16>(zero, one, &[M, N], &device).unwrap();
+    let tensor1 = Tensor::rand::<_, Dtype>(zero, one, &[M, K], &device).unwrap();
+    let tensor2 = Tensor::rand::<_, Dtype>(zero, one, &[K, N], &device).unwrap();
+
+    let tensor3 = Tensor::rand::<_, Dtype>(zero, one, &[M, N], &device).unwrap();
 
     device.synchronize().unwrap();
 
@@ -252,25 +254,25 @@ fn run_cubecl() -> Vec<f32> {
     let device = device();
     // warmup
 
-    matmul_cuda_with_init::<CudaBackend>(&device);
-    CudaBackend::sync(&device);
+    matmul_cuda_with_init::<Back>(&device);
+    Back::sync(&device);
 
     let count = 1000;
     let mut costs = vec![];
 
-    let (a, b, c) = rand_tensor::<CudaBackend>(&device);
-    CudaBackend::sync(&device);
+    let (a, b, c) = rand_tensor::<Back>(&device);
+    Back::sync(&device);
 
     for _ in 0..count {
         let a = a.clone();
         let b = b.clone();
         let c = c.clone();
-        CudaBackend::sync(&device);
+        Back::sync(&device);
 
         let begin = Instant::now();
 
         let res = a.matmul(b) + c;
-        CudaBackend::sync(&device);
+        Back::sync(&device);
 
         let elapsed = begin.elapsed().as_secs_f32() * 1000.0;
         println!("elapsed: {elapsed}ms");
@@ -297,8 +299,25 @@ fn main() {
     let cli = Args::parse();
 
     let mut costs = match cli.kind {
-        ComputeKind::CublasSafe => run_cublas(true),
-        ComputeKind::CublasRaw => run_cublas(false),
+        ComputeKind::CublasRaw => {
+            #[cfg(not(target_os = "macos"))]
+            {
+                run_cublas(true)
+            }
+
+            #[cfg(target_os = "macos")]
+            vec![]
+        }
+
+        ComputeKind::CublasSafe => {
+            #[cfg(not(target_os = "macos"))]
+            {
+                run_cublas(false)
+            }
+
+            #[cfg(target_os = "macos")]
+            vec![]
+        }
         ComputeKind::Candle => run_candle(),
         // _ => run_candle(),
         ComputeKind::Cubecl => run_cubecl(),

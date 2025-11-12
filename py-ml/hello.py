@@ -1,18 +1,35 @@
 from jinja2.nodes import Tuple
 import torch
 import time
+import platform
 
-device = torch.device("cuda:0")
+os_name = platform.system()
+
 dtype = torch.bfloat16
 
 m = 4096 * 4
 n = 4096
 k = 4096
 
+def sync():
+    if os_name == "Darwin":
+        pass
+        # torch.mps.synchronize()
+    else:
+        torch.cuda.synchronize()
+
+
+def get_device():
+    if os_name == "Darwin":
+        torch.device('mps')
+    else:
+        torch.device('cuda')
+
 def create_rand_tensors():
-    a = torch.rand(m, k, dtype=dtype, device=device)
-    b = torch.rand(k, n, dtype=dtype, device= device)
-    c = torch.rand(m, n, dtype=dtype, device=device)
+    device = get_device()
+    a = torch.rand(m, k, dtype=dtype)
+    b = torch.rand(k, n, dtype=dtype)
+    c = torch.rand(m, n, dtype=dtype)
 
     return a, b, c
 
@@ -23,7 +40,8 @@ def bench_logic():
     # torch.cuda.synchronize()
     # print(f"a: {a.dtype}")
     res = a.matmul(b)
-    torch.cuda.synchronize()
+
+    sync()
 
     return res
 
@@ -73,7 +91,7 @@ def main_logic():
 
     for _ in range(count):
         a, b, c = create_rand_tensors()
-        torch.cuda.synchronize()
+        sync()
 
 
 
@@ -82,11 +100,11 @@ def main_logic():
         # ) as prof:
         res = inner_op(a, b)
 
-        torch.cuda.synchronize()
+        sync()
 
         begin = time.time()
         res = a.matmul(b) + c
-        torch.cuda.synchronize()
+        sync()
 
         elapsed = (time.time() - begin) * 1000
 
@@ -109,8 +127,7 @@ def main_logic():
 
 
 if __name__ == "__main__":
-    print(torch.cuda.is_available())
-    print(device)
+    print(get_device())
 
     torch.set_float32_matmul_precision('medium')
     with torch.no_grad():
