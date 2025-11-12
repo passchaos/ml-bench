@@ -85,7 +85,7 @@ def main_logic():
         torch.cuda.synchronize()
 
         begin = time.time()
-        res = res + c        # res = bl()
+        res = a.matmul(b) + c
         torch.cuda.synchronize()
 
         elapsed = (time.time() - begin) * 1000
