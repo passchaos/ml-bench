@@ -218,8 +218,8 @@ fn run_candle() -> Vec<f32> {
     #[cfg(target_os = "macos")]
     type Dtype = f32;
 
-    let zero = 0.0;
-    let one = 1.0;
+    let zero = Dtype::from_f32(0.0);
+    let one = Dtype::from_f32(1.0);
 
     #[cfg(not(target_os = "macos"))]
     let device = candle_core::Device::new_cuda(0).unwrap();
